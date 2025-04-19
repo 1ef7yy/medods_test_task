@@ -52,9 +52,9 @@ func (v *view) Login(w http.ResponseWriter, r *http.Request) {
 
 	http.SetCookie(w, &refreshCookie)
 
-	resp, err := json.Marshal(struct{
+	resp, err := json.Marshal(struct {
 		AccessToken string `json:"access_token"`
-	} {
+	}{
 		AccessToken: tokens.AccessToken,
 	})
 

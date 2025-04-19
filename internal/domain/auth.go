@@ -19,7 +19,6 @@ func (d domain) Login(ctx context.Context, req models.GenerateTokenRequest) (mod
 		return models.Token{}, err
 	}
 
-
 	// bcrypt has upper limit of 72 bytes, base64 producers more
 	// so we put the base64 into sha256 and then into bcrypt
 	h := sha256.New()
@@ -29,7 +28,6 @@ func (d domain) Login(ctx context.Context, req models.GenerateTokenRequest) (mod
 		return models.Token{}, err
 	}
 	shaRefresh := h.Sum(nil)
-
 
 	bcryptRefresh, err := utils.StringToBcrypt(string(shaRefresh))
 
