@@ -13,6 +13,7 @@ import (
 func (v *view) Login(w http.ResponseWriter, r *http.Request) {
 	guid := r.URL.Query().Get("guid")
 
+	// strip port from ip
 	ip := strings.Split(r.RemoteAddr, ":")[0]
 
 	if guid == "" {

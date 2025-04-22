@@ -93,6 +93,7 @@ func (d domain) Refresh(ctx context.Context, req models.RefreshTokenRequest) (mo
 
 	err = bcrypt.CompareHashAndPassword([]byte(refreshHash), shaRefresh)
 	if err != nil {
+		d.log.Errorf("sha256 (%s) and db bcrypt (%s) did not match", shaRefresh, refreshHash)
 		return models.Token{}, errors.HashedRefreshDiffErr
 	}
 
@@ -101,11 +102,6 @@ func (d domain) Refresh(ctx context.Context, req models.RefreshTokenRequest) (mo
 	if err != nil {
 		d.log.Errorf("error incrementing generation: %s", err.Error())
 		return models.Token{}, err
-	}
-
-	if generation == -1 {
-		d.log.Infof("could not find refresh_hash %s matched with refresh_token %s", refreshHash, req.Tokens.RefreshToken)
-		return models.Token{}, errors.CouldNotFindRefreshHash
 	}
 
 	generateReq := models.GenerateTokenRequest{
