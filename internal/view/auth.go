@@ -25,8 +25,9 @@ func (v *view) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req := models.GenerateTokenRequest{
-		IP:   ip,
-		Guid: guid,
+		IP:         ip,
+		Guid:       guid,
+		Generation: 1,
 	}
 
 	tokens, err := v.domain.Login(r.Context(), req)

@@ -16,7 +16,7 @@ var (
 func GenerateTokenPair(req models.GenerateTokenRequest) (models.Token, error) {
 
 	if JWTSecret == nil {
-		return models.Token{}, fmt.Errorf("could not find JWT_SECRET IN environment")
+		return models.Token{}, errors.CouldNotFindSecretErr
 	}
 
 	refreshToken, err := jwt.NewWithClaims(jwt.SigningMethodHS512,
@@ -48,7 +48,7 @@ func GenerateTokenPair(req models.GenerateTokenRequest) (models.Token, error) {
 
 func DecodeRefresh(token string) (models.RefreshToken, error) {
 	if JWTSecret == nil {
-		return models.RefreshToken{}, fmt.Errorf("could not find JWT_SECRET in environment")
+		return models.RefreshToken{}, errors.CouldNotFindSecretErr
 	}
 	refreshToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -58,7 +58,7 @@ func DecodeRefresh(token string) (models.RefreshToken, error) {
 	})
 
 	if err != nil {
-		return models.RefreshToken{}, err
+		return models.RefreshToken{}, errors.TokenInvalidErr
 	}
 
 	if !refreshToken.Valid {
@@ -79,7 +79,7 @@ func DecodeRefresh(token string) (models.RefreshToken, error) {
 
 func DecodeAccess(token string) (models.AccessToken, error) {
 	if JWTSecret == nil {
-		return models.AccessToken{}, fmt.Errorf("could not find JWT_SECRET in environment")
+		return models.AccessToken{}, errors.CouldNotFindSecretErr
 	}
 	accessToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -88,12 +88,11 @@ func DecodeAccess(token string) (models.AccessToken, error) {
 		return JWTSecret, nil
 	})
 
-
 	if !accessToken.Valid {
 		return models.AccessToken{}, errors.TokenInvalidErr
 	}
 	if err != nil {
-		return models.AccessToken{}, err
+		return models.AccessToken{}, errors.TokenInvalidErr
 	}
 
 	claims, ok := accessToken.Claims.(jwt.MapClaims)
