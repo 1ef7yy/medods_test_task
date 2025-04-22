@@ -9,7 +9,7 @@ docker compose up
 ```
 
 TODO:
-- [ ] /refresh
-- [ ] Mailing (also strip IP port)
-- [ ] Mock values in users db
+- [x] /refresh
+- [x] Mailing (also strip IP port)
+- [x] Mock values in users db
 - [ ] Tests

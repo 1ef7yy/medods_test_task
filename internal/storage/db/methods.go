@@ -18,3 +18,28 @@ func (p *Postgres) StoreRefresh(ctx context.Context, refresh_hash string) error 
 
 	return err
 }
+
+func (p *Postgres) GetUserEmail(ctx context.Context, guid string) (string, error) {
+	query := `
+	SELECT email
+	FROM users
+	WHERE guid=$1
+	`
+
+	val, err := p.DB.Query(ctx, query, guid)
+	if err != nil {
+		p.log.Errorf("error getting user's mail: %s", err.Error())
+		return "", err
+	}
+
+	var addr string
+	if val.Next() {
+		err = val.Scan(&addr)
+		if err != nil {
+			p.log.Errorf("error scanning rows: %s", err.Error())
+			return "", err
+		}
+	}
+
+	return addr, nil
+}

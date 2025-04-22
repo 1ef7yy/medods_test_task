@@ -9,7 +9,7 @@ servers:
 
 paths:
   /api/v1/auth/login:
-    get:
+    post:
       parameters:
         - name: guid
           in: query
