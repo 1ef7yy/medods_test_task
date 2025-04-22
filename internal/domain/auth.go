@@ -9,6 +9,7 @@ import (
 	"github.com/1ef7yy/medods_test_task/models"
 	"github.com/1ef7yy/medods_test_task/pkg/jwt"
 	"github.com/1ef7yy/medods_test_task/pkg/utils"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func (d domain) Login(ctx context.Context, req models.GenerateTokenRequest) (models.Token, error) {
@@ -38,7 +39,7 @@ func (d domain) Login(ctx context.Context, req models.GenerateTokenRequest) (mod
 		return models.Token{}, err
 	}
 
-	err = d.db.StoreRefresh(ctx, bcryptRefresh)
+	err = d.db.StoreRefresh(ctx, bcryptRefresh, req.Guid)
 
 	if err != nil {
 		d.log.Errorf("error storing refresh: %s", err.Error())
@@ -76,11 +77,43 @@ func (d domain) Refresh(ctx context.Context, req models.RefreshTokenRequest) (mo
 		}
 	}
 
+	h := sha256.New()
+	_, err = h.Write([]byte(req.Tokens.RefreshToken))
+	if err != nil {
+		d.log.Errorf("error writing to sha hash")
+		return models.Token{}, err
+	}
+	shaRefresh := h.Sum(nil)
+
+	refreshHash, err := d.db.GetHash(ctx, refreshToken.Guid)
+	if err != nil {
+		d.log.Errorf("error getting refresh_hash: %s", err.Error())
+		return models.Token{}, err
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(refreshHash), shaRefresh)
+	if err != nil {
+		return models.Token{}, errors.HashedRefreshDiffErr
+	}
+
+	generation, err := d.db.NewGeneration(ctx, refreshHash)
+
+	if err != nil {
+		d.log.Errorf("error incrementing generation: %s", err.Error())
+		return models.Token{}, err
+	}
+
+	if generation == -1 {
+		d.log.Infof("could not find refresh_hash %s matched with refresh_token %s", refreshHash, req.Tokens.RefreshToken)
+		return models.Token{}, errors.CouldNotFindRefreshHash
+	}
+
 	generateReq := models.GenerateTokenRequest{
 		Guid:       refreshToken.Guid,
 		IP:         refreshToken.IP,
-		Generation: accessToken.Generation + 1,
+		Generation: generation,
 	}
+
 	tokens, err := jwt.GenerateTokenPair(generateReq)
 	if err != nil {
 		d.log.Errorf("error generating jwt token pair: %s", err.Error())

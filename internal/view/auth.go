@@ -32,6 +32,24 @@ func (v *view) Login(w http.ResponseWriter, r *http.Request) {
 
 	tokens, err := v.domain.Login(r.Context(), req)
 
+	if err == errors.CouldNotFindGuid {
+		w.WriteHeader(http.StatusNotFound)
+		_, err := w.Write([]byte(err.Error()))
+		if err != nil {
+			v.log.Errorf("error writing to client: %s", err)
+		}
+		return
+	}
+
+	if err == errors.UserAlreadyLoggedIn {
+		w.WriteHeader(http.StatusUnauthorized)
+		_, err := w.Write([]byte(err.Error()))
+		if err != nil {
+			v.log.Errorf("error writing to client: %s", err)
+		}
+		return
+	}
+
 	if err != nil {
 		v.log.Errorf("error logging in by guid: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
@@ -101,6 +119,7 @@ func (v *view) Refresh(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	v.log.Debugf("refresh_token cookie: %s", refreshToken)
 
 	token := models.Token{
 		RefreshToken: refreshToken,
@@ -127,6 +146,15 @@ func (v *view) Refresh(w http.ResponseWriter, r *http.Request) {
 	if err == errors.GuidIsDifferentErr {
 		w.WriteHeader(http.StatusBadRequest)
 		_, err := w.Write([]byte("guid in the tokens are different"))
+		if err != nil {
+			v.log.Errorf("error writing to client: %s", err)
+		}
+		return
+	}
+
+	if err == errors.CouldNotFindRefreshHash {
+		w.WriteHeader(http.StatusUnauthorized)
+		_, err := w.Write([]byte(err.Error()))
 		if err != nil {
 			v.log.Errorf("error writing to client: %s", err)
 		}

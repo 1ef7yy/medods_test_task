@@ -71,9 +71,17 @@ func DecodeRefresh(token string) (models.RefreshToken, error) {
 		return models.RefreshToken{}, fmt.Errorf("token %s could not be handled", token)
 	}
 
+	var ip, guid string
+	if claims["sub"] != nil && claims["ip"] != nil {
+		guid = claims["sub"].(string)
+		ip = claims["ip"].(string)
+	} else {
+		return models.RefreshToken{}, errors.TokenInvalidErr
+	}
+
 	return models.RefreshToken{
-		Guid: claims["sub"].(string),
-		IP:   claims["ip"].(string),
+		Guid: guid,
+		IP:   ip,
 	}, nil
 }
 
@@ -100,9 +108,20 @@ func DecodeAccess(token string) (models.AccessToken, error) {
 	if !ok {
 		return models.AccessToken{}, fmt.Errorf("token %s could not be handled", token)
 	}
+	var (
+		guid string
+		gen  int
+	)
+
+	if claims["sub"] != nil && claims["gen"] != nil {
+		guid = claims["sub"].(string)
+		gen = int(claims["gen"].(float64))
+	} else {
+		return models.AccessToken{}, errors.TokenInvalidErr
+	}
 
 	return models.AccessToken{
-		Guid:       claims["sub"].(string),
-		Generation: int(claims["gen"].(float64)),
+		Guid:       guid,
+		Generation: gen,
 	}, nil
 }
