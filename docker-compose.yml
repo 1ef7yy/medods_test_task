@@ -1,0 +1,56 @@
+services:
+  app:
+    container_name: app
+    build: ./
+    ports:
+      - 8080:8080
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - migrate
+    networks:
+      - app_network
+    restart: on-failure
+
+
+  db:
+    image: postgres:latest
+    command: ["postgres", "-c", "log_statement=all", "-c", "log_destination=stderr"]
+    ports:
+      - 5432:5432
+    container_name: postgres
+    env_file:
+      - .env
+    volumes:
+      - db_postgres:/var/lib/postgresql/data
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile.migrate
+    container_name: migrate
+    command: ["up"]
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app_network
+
+
+volumes:
+  db_postgres:
+
+networks:
+  app_network:
+    driver: bridge
