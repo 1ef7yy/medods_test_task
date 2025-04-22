@@ -16,7 +16,7 @@ var (
 func GenerateTokenPair(req models.GenerateTokenRequest) (models.Token, error) {
 
 	if JWTSecret == nil {
-		return models.Token{}, fmt.Errorf("could not find JWT_SECRET IN environment")
+		return models.Token{}, errors.CouldNotFindSecretErr
 	}
 
 	refreshToken, err := jwt.NewWithClaims(jwt.SigningMethodHS512,
@@ -48,7 +48,7 @@ func GenerateTokenPair(req models.GenerateTokenRequest) (models.Token, error) {
 
 func DecodeRefresh(token string) (models.RefreshToken, error) {
 	if JWTSecret == nil {
-		return models.RefreshToken{}, fmt.Errorf("could not find JWT_SECRET in environment")
+		return models.RefreshToken{}, errors.CouldNotFindSecretErr
 	}
 	refreshToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -58,7 +58,7 @@ func DecodeRefresh(token string) (models.RefreshToken, error) {
 	})
 
 	if err != nil {
-		return models.RefreshToken{}, err
+		return models.RefreshToken{}, errors.TokenInvalidErr
 	}
 
 	if !refreshToken.Valid {
@@ -71,15 +71,23 @@ func DecodeRefresh(token string) (models.RefreshToken, error) {
 		return models.RefreshToken{}, fmt.Errorf("token %s could not be handled", token)
 	}
 
+	var ip, guid string
+	if claims["sub"] != nil && claims["ip"] != nil {
+		guid = claims["sub"].(string)
+		ip = claims["ip"].(string)
+	} else {
+		return models.RefreshToken{}, errors.TokenInvalidErr
+	}
+
 	return models.RefreshToken{
-		Guid: claims["sub"].(string),
-		IP:   claims["ip"].(string),
+		Guid: guid,
+		IP:   ip,
 	}, nil
 }
 
 func DecodeAccess(token string) (models.AccessToken, error) {
 	if JWTSecret == nil {
-		return models.AccessToken{}, fmt.Errorf("could not find JWT_SECRET in environment")
+		return models.AccessToken{}, errors.CouldNotFindSecretErr
 	}
 	accessToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -88,11 +96,10 @@ func DecodeAccess(token string) (models.AccessToken, error) {
 		return JWTSecret, nil
 	})
 
-	if err != nil {
-		return models.AccessToken{}, err
-	}
-
 	if !accessToken.Valid {
+		return models.AccessToken{}, errors.TokenInvalidErr
+	}
+	if err != nil {
 		return models.AccessToken{}, errors.TokenInvalidErr
 	}
 
@@ -101,9 +108,20 @@ func DecodeAccess(token string) (models.AccessToken, error) {
 	if !ok {
 		return models.AccessToken{}, fmt.Errorf("token %s could not be handled", token)
 	}
+	var (
+		guid string
+		gen  int
+	)
+
+	if claims["sub"] != nil && claims["gen"] != nil {
+		guid = claims["sub"].(string)
+		gen = int(claims["gen"].(float64))
+	} else {
+		return models.AccessToken{}, errors.TokenInvalidErr
+	}
 
 	return models.AccessToken{
-		Guid:       claims["sub"].(string),
-		Generation: int(claims["gen"].(float64)),
+		Guid:       guid,
+		Generation: gen,
 	}, nil
 }
