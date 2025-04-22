@@ -88,12 +88,12 @@ func DecodeAccess(token string) (models.AccessToken, error) {
 		return JWTSecret, nil
 	})
 
-	if err != nil {
-		return models.AccessToken{}, err
-	}
 
 	if !accessToken.Valid {
 		return models.AccessToken{}, errors.TokenInvalidErr
+	}
+	if err != nil {
+		return models.AccessToken{}, err
 	}
 
 	claims, ok := accessToken.Claims.(jwt.MapClaims)
